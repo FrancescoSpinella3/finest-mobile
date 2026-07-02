@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "PowerShell(Get-Process flutter -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process java -ErrorAction SilentlyContinue)"
+    ]
+  }
+}
