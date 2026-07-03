@@ -5,10 +5,20 @@ import '../../shared/providers/data_provider.dart';
 import '../../shared/utils/currency_formatter.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/app_toast.dart';
+import '../../shared/widgets/info_dialog.dart';
+import '../../shared/widgets/menu_avatar_button.dart';
+import '../../shared/widgets/side_drawer.dart';
 import 'goal_modal.dart';
 
-class GoalsScreen extends StatelessWidget {
+class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
+
+  @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _openAdd(BuildContext context) {
     showModalBottomSheet(
@@ -16,6 +26,15 @@ class GoalsScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const GoalModal(),
+    );
+  }
+
+  void _showInfo(BuildContext context) {
+    showInfoDialog(
+      context,
+      title: 'Obiettivi',
+      message:
+          'Qui puoi impostare e monitorare i tuoi obiettivi di risparmio. Tocca il pulsante "+" per crearne uno nuovo, "Aggiungi contributo" per registrare un versamento, o usa il menu (⋮) su una voce per modificarla o eliminarla.',
     );
   }
 
@@ -54,11 +73,29 @@ class GoalsScreen extends StatelessWidget {
     final data = context.watch<DataProvider>();
 
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: const SideDrawer(),
       body: CustomScrollView(
         slivers: [
-          const SliverAppBar(
+          SliverAppBar(
             pinned: true,
-            title: Text('Obiettivi'),
+            title: Text(
+              'Obiettivi',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline),
+                onPressed: () => _showInfo(context),
+              ),
+              MenuAvatarButton(
+                onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+              const SizedBox(width: 16),
+            ],
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),

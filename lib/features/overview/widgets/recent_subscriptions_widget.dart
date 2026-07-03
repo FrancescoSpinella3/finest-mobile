@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/providers/data_provider.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/utils/category_style.dart';
 import '../../../shared/widgets/category_icon.dart';
 
 class RecentSubscriptionsWidget extends StatelessWidget {
@@ -79,6 +80,7 @@ class RecentSubscriptionsWidget extends StatelessWidget {
         itemBuilder: (ctx, i) {
           final sub = recent[i];
           final cat = _cat(sub.categoryId);
+          final catColor = categoryColor(sub.categoryId);
           return ListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -88,7 +90,7 @@ class RecentSubscriptionsWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: sub.logo != null
                     ? Colors.transparent
-                    : AppColors.darkBgCard,
+                    : catColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: ClipRRect(
@@ -99,7 +101,7 @@ class RecentSubscriptionsWidget extends StatelessWidget {
                         child: CategoryIcon(
                           icon: cat?.icon ?? '🔄',
                           size: 20,
-                          color: AppColors.mainBlue,
+                          color: catColor,
                         ),
                       ),
               ),
