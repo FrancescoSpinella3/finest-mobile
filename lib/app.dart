@@ -159,7 +159,7 @@ class _MainShellState extends State<_MainShell> {
                       children: [
                         if (i == 0)
                           _RoundedGridIcon(
-                            size: 18,
+                            size: 20,
                             color: selected
                                 ? Colors.white
                                 : (isDark

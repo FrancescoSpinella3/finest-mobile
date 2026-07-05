@@ -74,10 +74,11 @@ class RecentTransactionsWidget extends StatelessWidget {
           Color amountColor;
           if (t.type == 'income') {
             amountColor = AppColors.incomeColor;
-          } else if (t.type == 'expense')
+          } else if (t.type == 'expense') {
             amountColor = AppColors.expenseColor;
-          else
+          } else {
             amountColor = AppColors.savingColor;
+          }
 
           return ListTile(
             contentPadding:

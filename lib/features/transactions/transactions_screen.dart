@@ -154,7 +154,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.info_outline),
+                icon: const Icon(Icons.info_outline, color: Colors.grey),
                 onPressed: _showInfo,
               ),
               MenuAvatarButton(
@@ -276,10 +276,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         Color color;
                         if (t.type == 'income') {
                           color = AppColors.incomeColor;
-                        } else if (t.type == 'expense')
+                        } else if (t.type == 'expense') {
                           color = AppColors.expenseColor;
-                        else
+                        } else {
                           color = AppColors.savingColor;
+                        }
 
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -368,7 +369,6 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),

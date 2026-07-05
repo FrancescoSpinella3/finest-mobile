@@ -161,8 +161,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // ── 6-Month Chart ───────────────────────────────────
-                        const _SectionTitle(title: 'Ultimi 6 mesi'),
+                        // ── Annual Chart ─────────────────────────────────────
+                        const _SectionTitle(title: 'Flusso annuale'),
                         const SizedBox(height: 10),
                         MonthlyChart(monthlyData: data.monthlyData),
                         const SizedBox(height: 16),
@@ -312,7 +312,6 @@ class _NetWorthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -345,14 +344,7 @@ class _NetWorthCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    formatCurrency(data.netWorth),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 32,
-                      color: Colors.white,
-                    ),
-                  ),
+                  _NetWorthAmount(amount: data.netWorth),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -387,6 +379,43 @@ class _NetWorthCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NetWorthAmount extends StatelessWidget {
+  final double amount;
+
+  const _NetWorthAmount({required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatted = formatCurrency(amount);
+    final parts = formatted.split(',');
+    final main = parts.first;
+    final decimals = parts.length > 1 ? ',${parts[1]}' : '';
+
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: main,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 32,
+              color: Colors.white,
+            ),
+          ),
+          TextSpan(
+            text: decimals,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 32,
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
       ),
     );
   }

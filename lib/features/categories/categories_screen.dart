@@ -82,7 +82,7 @@ class _CategoriesScreenState extends State<CategoriesScreen>
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.info_outline),
+                icon: const Icon(Icons.info_outline, color: Colors.grey),
                 onPressed: _showInfo,
               ),
               MenuAvatarButton(

@@ -109,7 +109,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.info_outline),
+                icon: const Icon(Icons.info_outline, color: Colors.grey),
                 onPressed: () => _showInfo(context),
               ),
               MenuAvatarButton(
