@@ -208,12 +208,12 @@ class DataProvider extends ChangeNotifier {
   double get totalSubscriptionCost =>
       _subscriptions.fold(0, (s, sub) => s + sub.cost);
 
-  // ── Monthly aggregates (last 6 months) ──────────────────────────────────────
+  // ── Monthly aggregates (January → current month) ─────────────────────────────
 
   List<Map<String, dynamic>> get monthlyData {
     final now = DateTime.now();
-    return List.generate(6, (i) {
-      final month = DateTime(now.year, now.month - 5 + i);
+    return List.generate(now.month, (i) {
+      final month = DateTime(now.year, i + 1);
       final income = _transactions
           .where((t) =>
               t.type == 'income' &&

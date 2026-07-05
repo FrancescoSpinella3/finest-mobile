@@ -7,6 +7,10 @@ import '../../shared/utils/currency_formatter.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/app_toast.dart';
 import '../../shared/widgets/category_icon.dart';
+import '../../shared/widgets/info_dialog.dart';
+import '../../shared/widgets/menu_avatar_button.dart';
+import '../../shared/widgets/side_drawer.dart';
+import '../../shared/utils/category_style.dart';
 import 'transaction_modal.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -17,6 +21,7 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _searchCtrl = TextEditingController();
   String _search = '';
   String _typeFilter = 'Tutti';
@@ -57,6 +62,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         case 'Ultima settimana':
           from = now.subtract(const Duration(days: 7));
           break;
+        case 'Ultimi 30 giorni':
+          from = now.subtract(const Duration(days: 30));
+          break;
         case 'Ultimi 6 mesi':
           from = DateTime(now.year, now.month - 6, now.day);
           break;
@@ -77,6 +85,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const TransactionModal(),
+    );
+  }
+
+  void _showInfo() {
+    showInfoDialog(
+      context,
+      title: 'Transazioni',
+      message:
+          'Qui puoi consultare tutte le tue transazioni. Usa la barra di ricerca e i filtri per periodo, tipo o categoria per trovare quelle che ti interessano. Tocca il pulsante "+" per aggiungerne una nuova, oppure usa il menu (⋮) su una voce per modificarla o eliminarla.',
     );
   }
 
@@ -122,11 +139,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .fold<double>(0, (s, t) => s + t.amount);
 
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: const SideDrawer(),
       body: CustomScrollView(
         slivers: [
-          const SliverAppBar(
+          SliverAppBar(
             pinned: true,
-            title: Text('Transazioni'),
+            title: Text(
+              'Transazioni',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline, color: Colors.grey),
+                onPressed: _showInfo,
+              ),
+              MenuAvatarButton(
+                onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+              ),
+              const SizedBox(width: 16),
+            ],
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
@@ -154,6 +189,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         items: const [
                           'Tutti',
                           'Ultima settimana',
+                          'Ultimi 30 giorni',
                           'Ultimi 6 mesi',
                           'Ultimo anno'
                         ],
@@ -236,13 +272,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       itemBuilder: (ctx, i) {
                         final t = filtered[i];
                         final cat = data.getCategoryById(t.categoryId);
+                        final catColor = categoryColor(t.categoryId);
                         Color color;
                         if (t.type == 'income') {
                           color = AppColors.incomeColor;
-                        } else if (t.type == 'expense')
+                        } else if (t.type == 'expense') {
                           color = AppColors.expenseColor;
-                        else
+                        } else {
                           color = AppColors.savingColor;
+                        }
 
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -251,14 +289,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkBgCard : AppColors.lightBgDashboard,
+                              color: catColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Center(
                               child: CategoryIcon(
                                 icon: cat?.icon ?? '💰',
                                 size: 20,
-                                color: color,
+                                color: catColor,
                               ),
                             ),
                           ),
@@ -331,7 +369,6 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -508,6 +545,9 @@ class _SimplePickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBgContainer : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -528,13 +568,20 @@ class _SimplePickerSheet extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
-          ...items.map((item) => ListTile(
-                title: Text(item),
-                trailing: item == value
-                    ? const Icon(Icons.check, color: AppColors.mainBlue)
-                    : null,
-                onTap: () => Navigator.pop(context, item),
-              )),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: items
+                  .map((item) => ListTile(
+                        title: Text(item),
+                        trailing: item == value
+                            ? const Icon(Icons.check, color: AppColors.mainBlue)
+                            : null,
+                        onTap: () => Navigator.pop(context, item),
+                      ))
+                  .toList(),
+            ),
+          ),
           const SizedBox(height: 16),
         ],
       ),

@@ -37,7 +37,7 @@ class AppText {
         color: Colors.white,
       );
 
-  static TextStyle netWorthLabel => GoogleFonts.montserrat(
+  static TextStyle get netWorthLabel => GoogleFonts.montserrat(
         fontWeight: FontWeight.w700,
         fontSize: 32,
         color: Colors.white,

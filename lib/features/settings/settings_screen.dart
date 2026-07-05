@@ -98,7 +98,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (ok == true && mounted) {
       final error = await context.read<AuthProvider>().deleteAccount();
-      if (mounted && error != null) {
+      if (!mounted) return;
+      if (error != null) {
         showAppToast(context, error, type: ToastType.error);
       } else {
         context.read<DataProvider>().clear();
@@ -143,9 +144,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          const SliverAppBar(
+          SliverAppBar(
             pinned: true,
-            title: Text('Impostazioni'),
+            title: Text(
+              'Impostazioni',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),

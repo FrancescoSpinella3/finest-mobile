@@ -1,40 +1,146 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/providers/data_provider.dart';
 import '../../shared/utils/currency_formatter.dart';
+import '../auth/auth_provider.dart';
+import '../settings/settings_screen.dart';
 import 'widgets/monthly_chart.dart';
 import 'widgets/recent_transactions_widget.dart';
 import 'widgets/recent_subscriptions_widget.dart';
 import 'widgets/goals_summary_widget.dart';
 
-class OverviewScreen extends StatelessWidget {
+class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
+
+  @override
+  State<OverviewScreen> createState() => _OverviewScreenState();
+}
+
+class _OverviewScreenState extends State<OverviewScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     final data = context.watch<DataProvider>();
+    final auth = context.watch<AuthProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.darkBgMain : AppColors.lightBgMain;
     final now = DateTime.now();
-    final monthLabel = DateFormat('MMMM yyyy', 'it_IT').format(now);
+    final rawMonthLabel = DateFormat('MMMM yyyy', 'it_IT').format(now);
+    final monthLabel =
+        rawMonthLabel[0].toUpperCase() + rawMonthLabel.substring(1);
     final monthBalance = data.currentMonthIncome -
         data.currentMonthExpenses -
         data.currentMonthSavings;
 
+    final profile = auth.profile;
+    final firstName = profile?['name']?.toString() ?? '';
+    final lastName = profile?['lastName']?.toString() ?? '';
+    final fullName = '$firstName $lastName'.trim();
+    final avatarUrl = profile?['profileImage']?.toString();
+    final initials = firstName.isNotEmpty
+        ? (firstName[0] + (lastName.isNotEmpty ? lastName[0] : ''))
+            .toUpperCase()
+        : 'U';
+
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: bgColor,
+      endDrawer: _SideDrawer(
+        fullName: fullName.isNotEmpty ? fullName : 'Utente',
+        email: auth.user?.email ?? '',
+        initials: initials,
+        avatarUrl: avatarUrl,
+      ),
       body: data.loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async {},
               child: CustomScrollView(
                 slivers: [
-                  const SliverAppBar(
+                  SliverAppBar(
                     pinned: true,
-                    expandedHeight: 0,
-                    title: Text('Panoramica'),
+                    automaticallyImplyLeading: false,
+                    toolbarHeight: 72,
+                    titleSpacing: 16,
+                    title: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bentornato, ${firstName.isNotEmpty ? firstName : 'Utente'}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Panoramica',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      GestureDetector(
+                        onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                        child: Container(
+                          height: 40,
+                          padding: const EdgeInsets.only(left: 12, right: 3),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkBgCard : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.menu_rounded,
+                                size: 18,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              CircleAvatar(
+                                radius: 17,
+                                backgroundColor: AppColors.mainBlue,
+                                backgroundImage: avatarUrl != null
+                                    ? NetworkImage(avatarUrl)
+                                    : null,
+                                child: avatarUrl == null
+                                    ? Text(
+                                        initials,
+                                        style: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
@@ -55,8 +161,8 @@ class OverviewScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
-                        // ── 6-Month Chart ───────────────────────────────────
-                        const _SectionTitle(title: 'Ultimi 6 mesi'),
+                        // ── Annual Chart ─────────────────────────────────────
+                        const _SectionTitle(title: 'Flusso annuale'),
                         const SizedBox(height: 10),
                         MonthlyChart(monthlyData: data.monthlyData),
                         const SizedBox(height: 16),
@@ -98,6 +204,93 @@ class OverviewScreen extends StatelessWidget {
   }
 }
 
+class _SideDrawer extends StatelessWidget {
+  final String fullName;
+  final String email;
+  final String initials;
+  final String? avatarUrl;
+
+  const _SideDrawer({
+    required this.fullName,
+    required this.email,
+    required this.initials,
+    required this.avatarUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Drawer(
+      backgroundColor: isDark ? AppColors.darkBgContainer : Colors.white,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.mainBlue,
+                    backgroundImage:
+                        avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+                    child: avatarUrl == null
+                        ? Text(
+                            initials,
+                            style: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fullName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (email.isNotEmpty)
+                          Text(
+                            email,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined,
+                  color: AppColors.mainBlue),
+              title: const Text('Impostazioni'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   final String title;
   const _SectionTitle({required this.title});
@@ -119,7 +312,6 @@ class _NetWorthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -152,14 +344,7 @@ class _NetWorthCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    formatCurrency(data.netWorth),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 32,
-                      color: Colors.white,
-                    ),
-                  ),
+                  _NetWorthAmount(amount: data.netWorth),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -199,6 +384,43 @@ class _NetWorthCard extends StatelessWidget {
   }
 }
 
+class _NetWorthAmount extends StatelessWidget {
+  final double amount;
+
+  const _NetWorthAmount({required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatted = formatCurrency(amount);
+    final parts = formatted.split(',');
+    final main = parts.first;
+    final decimals = parts.length > 1 ? ',${parts[1]}' : '';
+
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: main,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 32,
+              color: Colors.white,
+            ),
+          ),
+          TextSpan(
+            text: decimals,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 32,
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatItem extends StatelessWidget {
   final String label;
   final String value;
@@ -225,8 +447,8 @@ class _StatItem extends StatelessWidget {
               label,
               style: TextStyle(
                 color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -236,8 +458,8 @@ class _StatItem extends StatelessWidget {
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
@@ -368,7 +590,7 @@ class _MonthlySummaryRow extends StatelessWidget {
               Text(
                 formatCurrency(balance),
                 style: TextStyle(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   fontSize: 15,
                   color:
                       balance >= 0 ? AppColors.incomeColor : AppColors.danger,

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/providers/data_provider.dart';
 import '../../../shared/utils/currency_formatter.dart';
+import '../../../shared/utils/category_style.dart';
 import '../../../shared/widgets/category_icon.dart';
 
 class RecentTransactionsWidget extends StatelessWidget {
@@ -69,13 +70,15 @@ class RecentTransactionsWidget extends StatelessWidget {
         itemBuilder: (ctx, i) {
           final t = recent[i];
           final cat = _cat(t.categoryId);
+          final catColor = categoryColor(t.categoryId);
           Color amountColor;
           if (t.type == 'income') {
             amountColor = AppColors.incomeColor;
-          } else if (t.type == 'expense')
+          } else if (t.type == 'expense') {
             amountColor = AppColors.expenseColor;
-          else
+          } else {
             amountColor = AppColors.savingColor;
+          }
 
           return ListTile(
             contentPadding:
@@ -84,14 +87,14 @@ class RecentTransactionsWidget extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBgCard : AppColors.lightBgDashboard,
+                color: catColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
                 child: CategoryIcon(
                   icon: cat?.icon ?? '💰',
                   size: 20,
-                  color: amountColor,
+                  color: catColor,
                 ),
               ),
             ),

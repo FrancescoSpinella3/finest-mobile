@@ -9,6 +9,35 @@ class MonthlyChart extends StatelessWidget {
 
   const MonthlyChart({super.key, required this.monthlyData});
 
+  double _interval(double maxVal) {
+    if (maxVal <= 0) return 50;
+    if (maxVal <= 80) return 20;
+    if (maxVal <= 200) return 40;
+    if (maxVal <= 500) return 100;
+    if (maxVal <= 1000) return 200;
+    if (maxVal <= 5000) return 1000;
+    return (maxVal / 4).ceilToDouble();
+  }
+
+  LineChartBarData _line(String key, Color color) {
+    final spots = List.generate(
+      monthlyData.length,
+      (i) => FlSpot(i.toDouble(), (monthlyData[i][key] as double)),
+    );
+    return LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      curveSmoothness: 0.35,
+      color: color,
+      barWidth: 2,
+      dotData: const FlDotData(show: false),
+      belowBarData: BarAreaData(
+        show: true,
+        color: color.withValues(alpha: 0.15),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -18,15 +47,28 @@ class MonthlyChart extends StatelessWidget {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     final textColor =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final labelColor = isDark ? Colors.white : Colors.black87;
+    final gridColor = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.black.withValues(alpha: 0.08);
 
-    final maxVal = monthlyData.fold<double>(0, (max, m) {
+    final maxVal = monthlyData.fold<double>(0, (prev, m) {
       final v = [
         m['income'] as double,
         m['expenses'] as double,
-        m['savings'] as double
+        m['savings'] as double,
       ].reduce((a, b) => a > b ? a : b);
-      return v > max ? v : max;
+      return v > prev ? v : prev;
     });
+
+    final interval = _interval(maxVal);
+    final maxY = maxVal <= 0
+        ? 100.0
+        : (interval * ((maxVal / interval).ceil() + 1)).toDouble();
+
+    final year = monthlyData.isNotEmpty
+        ? (monthlyData.last['month'] as DateTime).year.toString()
+        : DateTime.now().year.toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -34,10 +76,120 @@ class MonthlyChart extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Legend
+          Text(
+            'FLUSSO ANNUALE',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+              letterSpacing: 1.2,
+            ),
+          ),
+          Text(
+            year,
+            style: GoogleFonts.poppins(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: labelColor,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: maxY,
+                clipData: const FlClipData.all(),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) =>
+                        isDark ? const Color(0xFF252A3A) : Colors.white,
+                    getTooltipItems: (spots) {
+                      final labels = ['Entrate', 'Uscite', 'Risparmi'];
+                      final colors = [
+                        AppColors.incomeColor,
+                        AppColors.expenseColor,
+                        AppColors.savingColor,
+                      ];
+                      return spots.map((s) {
+                        final idx = s.barIndex;
+                        return LineTooltipItem(
+                          '${labels[idx]}: €${s.y.toStringAsFixed(2)}',
+                          GoogleFonts.poppins(
+                              fontSize: 11, color: colors[idx]),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 52,
+                      interval: interval,
+                      getTitlesWidget: (value, meta) {
+                        if (value == meta.max) return const SizedBox.shrink();
+                        return Text(
+                          '€${value.toInt()}',
+                          style: GoogleFonts.poppins(
+                              fontSize: 10, color: textColor),
+                        );
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= monthlyData.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final month =
+                            monthlyData[idx]['month'] as DateTime;
+                        return Text(
+                          DateFormat('MMM', 'it_IT').format(month),
+                          style: GoogleFonts.poppins(
+                              fontSize: 10, color: textColor),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: interval,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: gridColor,
+                    strokeWidth: 1,
+                    dashArray: [4, 4],
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  _line('income', AppColors.incomeColor),
+                  _line('expenses', AppColors.expenseColor),
+                  _line('savings', AppColors.savingColor),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -47,89 +199,6 @@ class MonthlyChart extends StatelessWidget {
               SizedBox(width: 16),
               _LegendItem(color: AppColors.savingColor, label: 'Risparmi'),
             ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 160,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: maxVal * 1.2 + 10,
-                barTouchData: BarTouchData(enabled: false),
-                titlesData: FlTitlesData(
-                  show: true,
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 24,
-                      getTitlesWidget: (value, meta) {
-                        final idx = value.toInt();
-                        if (idx < 0 || idx >= monthlyData.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final month = monthlyData[idx]['month'] as DateTime;
-                        return Text(
-                          DateFormat('MMM', 'it_IT').format(month),
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: textColor,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: maxVal > 0 ? maxVal / 3 : 100,
-                  getDrawingHorizontalLine: (v) => FlLine(
-                    color: borderColor,
-                    strokeWidth: 0.5,
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                barGroups: List.generate(monthlyData.length, (i) {
-                  final m = monthlyData[i];
-                  return BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: (m['income'] as double),
-                        color: AppColors.incomeColor,
-                        width: 6,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(3)),
-                      ),
-                      BarChartRodData(
-                        toY: (m['expenses'] as double),
-                        color: AppColors.expenseColor,
-                        width: 6,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(3)),
-                      ),
-                      BarChartRodData(
-                        toY: (m['savings'] as double),
-                        color: AppColors.savingColor,
-                        width: 6,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(3)),
-                      ),
-                    ],
-                    barsSpace: 2,
-                  );
-                }),
-              ),
-            ),
           ),
         ],
       ),
@@ -152,10 +221,7 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(fontSize: 11),
-        ),
+        Text(label, style: GoogleFonts.poppins(fontSize: 11)),
       ],
     );
   }
